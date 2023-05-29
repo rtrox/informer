@@ -1,0 +1,14 @@
+---
+sources:
+  - name: "radarr"
+    type: "radarr"
+    config:
+      webhook_user: "radarr"
+      webhook_pass: "radarr"
+    sinks:
+      - "log"
+sinks:
+  - name: "log"
+    type: "log"
+    config:
+      level: "debug"

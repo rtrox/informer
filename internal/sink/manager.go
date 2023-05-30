@@ -32,21 +32,34 @@ func (s *SinkManager) EnqueueEvent(e event.Event) {
 	s.in <- e
 }
 
-func (s *SinkManager) RegisterSink(name string, sink Sink) {
-	newSink := NewSinkProcessor(sink, s.sinkQueueLength)
-	newSink.Start(s.wg)
-	s.wg.Add(1)
-
+func (s *SinkManager) UpdateSinks(sinks map[string]Sink) {
 	s.sinkMut.Lock()
 	defer s.sinkMut.Unlock()
-	s.sinks[name] = newSink
-}
 
-func (s *SinkManager) UnregisterSink(name string) {
-	s.sinkMut.Lock()
-	defer s.sinkMut.Unlock()
-	s.sinks[name].Done()
-	delete(s.sinks, name)
+	// Close any sinks which are no longer registered.
+	for name, sink := range s.sinks {
+		_, ok := sinks[name]
+		if !ok {
+			sink.Done()
+			delete(s.sinks, name)
+		}
+	}
+
+	// Add any new sinks.
+	for name, sink := range sinks {
+		newSink := NewSinkProcessor(sink, s.sinkQueueLength)
+		newSink.Start(s.wg)
+		s.wg.Add(1)
+
+		oldSink, ok := s.sinks[name]
+		if ok {
+			// If a sink with this name is alread registered,
+			// replace it first, and then close the old one.
+			defer oldSink.Done()
+		}
+
+		s.sinks[name] = newSink
+	}
 }
 
 func (s *SinkManager) Start(done <-chan struct{}) {

@@ -9,12 +9,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
+	"github.com/rtrox/informer/internal/config"
 	"github.com/rtrox/informer/internal/event"
+	"github.com/rtrox/informer/internal/handler"
 	"github.com/rtrox/informer/internal/sink"
-	logSinkLib "github.com/rtrox/informer/internal/sink/log"
+	"github.com/rtrox/informer/internal/source"
 )
 
 var (
@@ -34,6 +37,14 @@ func newHealthCheckHandler() http.Handler {
 }
 
 func main() {
+	conf, err := config.LoadConfig("config.yaml")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load config")
+	}
+
+	if err := conf.Validate(); err != nil {
+		log.Fatal().Err(err).Msg("Invalid config")
+	}
 
 	var srv http.Server
 
@@ -64,14 +75,14 @@ func main() {
 		Msg("Informer Started.")
 
 	sinkManager := sink.NewSinkManager(sink.SinkManagerOpts{
-		QueueLength:     10,
-		SinkQueueLength: 10,
+		QueueLength:     conf.QueueSize,
+		SinkQueueLength: conf.SinkQueueSize,
 	})
-
-	sinkManager.RegisterSink("log", &logSinkLib.LogSink{})
 
 	done := make(chan struct{})
 	sinkManager.Start(done)
+
+	config.UpdateSinkManagerConfig(sinkManager, conf.Sinks)
 
 	sinkManager.EnqueueEvent(event.Event{
 		EventType:       event.ObjectAdded,
@@ -83,9 +94,20 @@ func main() {
 		},
 	})
 	log.Info().Msg("Event sent.")
-	router := http.NewServeMux()
+
+	sourceManager := source.NewSourceManager()
+	config.UpdateSourceManagerConfig(sourceManager, conf.Sources)
+
+	router := chi.NewRouter()
 	router.Handle("/healthz", newHealthCheckHandler())
 
+	router.Route("/webhook", func(r chi.Router) {
+		r.Use(handler.PublishEventMiddleware(sinkManager))
+		r.Mount("/", sourceManager.Routes())
+	})
+
+	srv.Addr = fmt.Sprintf("%s:%d", conf.Interface, conf.Port)
+	srv.Handler = router
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatal().Err(err).Msg("Failed to start HTTP Server")
 	}

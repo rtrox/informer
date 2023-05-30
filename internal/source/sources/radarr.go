@@ -45,6 +45,13 @@ type RadarrEvent struct {
 	DownloadClientType string `json:"downloadClientType"`
 	DownloadID         int    `json:"downloadId"`
 	IsUpgrade          bool   `json:"isUpgrade"`
+	DeleteReason       string `json:"deleteReason"`
+	Level              string `json:"level"`
+	Message            string `json:"message"`
+	Type               string `json:"type"`
+	WikiUrl            string `json:"wikiUrl"`
+	PreviousVersion    string `json:"previousVersion"`
+	NewVersion         string `json:"newVersion"`
 	EventType          string `json:"eventType"`
 }
 
@@ -76,3 +83,19 @@ type RadarrMovieFile struct {
 	IndexerFlags   string `json:"indexerFlags"`
 	SizeBytes      int64  `json:"size"`
 }
+
+type RadarrRelease struct {
+	Quality        string `json:"quality"`
+	QualityVersion int    `json:"qualityVersion"`
+	ReleaseGroup   string `json:"releaseGroup"`
+	ReleaseTitle   string `json:"releaseTitle"`
+	Indexer        string `json:"indexer"`
+	SizeBytes      int64  `json:"size"`
+}
+
+const (
+	RadarrHealthOK = iota
+	RadarrHealthNotice
+	RadarrHealthWarning
+	RadarrHealthError
+)

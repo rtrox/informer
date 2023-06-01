@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/rs/zerolog/log"
 	"github.com/rtrox/informer/internal/event"
 )
 
@@ -58,7 +59,9 @@ func (s *sinkProcessor) Start(wg *sync.WaitGroup) {
 		for {
 			select {
 			case e := <-s.in:
-				s.ProcessEvent(e)
+				if err := s.ProcessEvent(e); err != nil {
+					log.Error().Err(err).Msg("Error processing event.")
+				}
 			case <-s.done:
 				s.sink.Done()
 				return

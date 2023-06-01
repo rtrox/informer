@@ -1,0 +1,29 @@
+---
+builds:
+  - main: ./cmd/informer/main.go
+
+    binary: informer
+
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+    env:
+      - CGO_ENABLED=0
+
+    goos:
+      - linux
+      - darwin
+
+    goarch:
+      - amd64
+      - arm
+      - arm64
+
+    goarm:
+      - 6
+      - 7
+
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+changelog:
+  use: github-native

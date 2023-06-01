@@ -86,7 +86,7 @@ func main() {
 
 	sinkManager.EnqueueEvent(event.Event{
 		EventType:       event.ObjectAdded,
-		Name:            "Test Event",
+		Title:           "Test Event",
 		Description:     "This is a test event.",
 		SourceEventType: "TestEvent",
 		Metadata: map[string]string{

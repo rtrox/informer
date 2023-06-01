@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/rtrox/informer/internal/event"
 	"github.com/rtrox/informer/internal/handler"
 
 	"github.com/go-chi/chi"
@@ -14,7 +13,6 @@ import (
 type SourceManager struct {
 	sources   map[string]Source
 	sourceMut sync.RWMutex
-	out       chan<- event.Event
 }
 
 func NewSourceManager() *SourceManager {

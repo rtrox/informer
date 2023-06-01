@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	flag "github.com/spf13/pflag"
 
 	"github.com/rtrox/informer/internal/config"
 	"github.com/rtrox/informer/internal/event"
@@ -37,7 +38,10 @@ func newHealthCheckHandler() http.Handler {
 }
 
 func main() {
-	conf, err := config.LoadConfig("config.yaml")
+	configFile := flag.String("config", "config.yaml", "Path to config file")
+	flag.Parse()
+
+	conf, err := config.LoadConfig(*configFile)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load config")
 	}

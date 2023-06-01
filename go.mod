@@ -11,6 +11,7 @@ require (
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/v2 v2.0.1
 	github.com/rs/zerolog v1.29.1
+	github.com/spf13/pflag v1.0.5
 )
 
 require (

@@ -25,11 +25,7 @@ func NewLog(_ interface{}) sink.Sink {
 
 func (_ *Log) processEvent(e event.Event) {
 	log.Info().
-		Str("source", e.Source).
-		Str("event_type", e.EventType.String()).
-		Str("name", e.Title).
-		Str("description", e.Description).
-		Str("source_event_type", e.SourceEventType).
+		Interface("event", e).
 		Msg("Event Received.")
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/rtrox/informer/internal/event"
 	"github.com/rtrox/informer/internal/source"
+	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -26,10 +27,10 @@ func (g *GenericWebhook) HandleHTTP(w http.ResponseWriter, r *http.Request) (eve
 	return e, nil
 }
 
-func NewGenericWebhook(_ interface{}) source.Source {
+func NewGenericWebhook(_ yaml.Node) source.Source {
 	return &GenericWebhook{}
 }
 
-func ValidateGenericWebhookConfig(_ interface{}) error {
+func ValidateGenericWebhookConfig(_ yaml.Node) error {
 	return nil
 }

@@ -1,13 +1,19 @@
 package sources
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
 	"github.com/rtrox/informer/internal/event"
 	"github.com/rtrox/informer/internal/source"
+	"golift.io/starr"
+	"golift.io/starr/radarr"
+	"gopkg.in/yaml.v3"
 )
 
 const RadarrSource = "Radarr"
@@ -18,12 +24,19 @@ const RadarrSourceIconURL = "https://raw.githubusercontent.com/Radarr/Radarr/dev
 func init() {
 	source.RegisterSource("radarr", source.SourceRegistryEntry{
 		Constructor: NewRadarrWebhook,
+		Validator:   ValidateRadarrConfig,
 	})
 }
 
-type Radarr struct{}
+type RadarrConfig struct {
+	ApiKey string `yaml:"api-key"`
+	URL    string `yaml:"url"`
+}
+type Radarr struct {
+	client *radarr.Radarr
+}
 
-func (radarr *Radarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.Event, error) {
+func (rd *Radarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.Event, error) {
 	var re RadarrEvent
 	if err := render.Bind(r, &re); err != nil {
 		return event.Event{}, err
@@ -31,20 +44,31 @@ func (radarr *Radarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.
 	log.Info().Interface("input", re).Msg("Handling Radarr event.")
 	switch re.EventType {
 	case RadarrEventHealth:
-		return HandleHealthIssue(re)
+		return rd.HandleHealthIssue(re)
 	case RadarrEventUpdate:
-		return HandleApplicationUpdate(re)
+		return rd.HandleApplicationUpdate(re)
 	default:
-		return HandleMovieEvent(re)
+		return rd.HandleMovieEvent(re)
 	}
 }
 
-func NewRadarrWebhook(_ interface{}) source.Source {
-	return &Radarr{}
+// TODO: Error propagation
+func NewRadarrWebhook(conf yaml.Node) source.Source {
+	c := RadarrConfig{}
+	if err := conf.Decode(&c); err != nil {
+		log.Error().Err(err).Msg("Failed to decode Radarr config.")
+		return &Radarr{}
+	}
+	log.Info().Interface("config", c).Msg("Loaded Radarr config.")
+	st := starr.New(c.ApiKey, c.URL, 0)
+	client := radarr.New(st)
+	return &Radarr{
+		client: client,
+	}
 }
 
-func ValidateRadarrConfig(_ interface{}) error {
-	return nil
+func ValidateRadarrConfig(conf yaml.Node) error {
+	return conf.Decode(&RadarrConfig{})
 }
 
 func commonRadarrFields(r RadarrEvent) event.Event {
@@ -56,7 +80,7 @@ func commonRadarrFields(r RadarrEvent) event.Event {
 	}
 }
 
-func HandleHealthIssue(r RadarrEvent) (event.Event, error) {
+func (rd *Radarr) HandleHealthIssue(r RadarrEvent) (event.Event, error) {
 	e := commonRadarrFields(r)
 	e.Title = fmt.Sprintf("%s Health %s: %s", RadarrSource, r.Level, r.Type)
 	e.Description = r.Message
@@ -64,7 +88,7 @@ func HandleHealthIssue(r RadarrEvent) (event.Event, error) {
 	return e, nil
 }
 
-func HandleApplicationUpdate(r RadarrEvent) (event.Event, error) {
+func (rd *Radarr) HandleApplicationUpdate(r RadarrEvent) (event.Event, error) {
 	e := commonRadarrFields(r)
 	e.Title = r.Message
 	e.Description = r.Message
@@ -75,25 +99,49 @@ func HandleApplicationUpdate(r RadarrEvent) (event.Event, error) {
 	return e, nil
 }
 
-func HandleMovieEvent(r RadarrEvent) (event.Event, error) {
+func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 	e := commonRadarrFields(r)
 	e.Title = fmt.Sprintf("%s: %s", r.EventType.Description(), r.Movie.Title)
 	e.Description = fmt.Sprintf("Movie %s", r.EventType.Description())
 	e.Metadata = map[string]string{}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	movie, err := rd.client.GetMovieByIDContext(ctx, r.Movie.ID)
+	if err != nil {
+		return event.Event{}, err
+	}
+
 	if r.Movie != nil {
 		e.Metadata["Movie Title"] = r.Movie.Title
 		e.Metadata["Year"] = fmt.Sprintf("%d", r.Movie.Year)
 		e.Metadata["Release Date"] = r.Movie.ReleaseDate
-	}
-	if r.MovieFile != nil {
-		e.Metadata["Quality"] = r.MovieFile.Quality
-		e.Metadata["Release Group"] = r.MovieFile.ReleaseGroup
-		e.Metadata["Release"] = r.MovieFile.SceneName
+		e.Metadata["Rating"] = fmt.Sprintf("%f", movie.Ratings.Value)
+		e.Metadata["Genres"] = strings.Join(movie.Genres, ", ")
+		e.Metadata["Overview"] = movie.Overview
+		for _, image := range movie.Images {
+			switch image.CoverType {
+			case "poster":
+				*e.ThumbnailURL = image.RemoteURL
+			case "fanart":
+				*e.ImageURL = image.RemoteURL
+			}
+		}
 	}
 	if r.Release != nil {
 		e.Metadata["Release"] = r.Release.ReleaseTitle
 		e.Metadata["Release Group"] = r.Release.ReleaseGroup
 		e.Metadata["Quality"] = r.Release.Quality
+	}
+	if r.MovieFile != nil {
+		e.Metadata["Quality"] = r.MovieFile.Quality
+		e.Metadata["Release Group"] = r.MovieFile.ReleaseGroup
+		e.Metadata["Release"] = r.MovieFile.SceneName
+
+		e.Metadata["File Size"] = fmt.Sprintf("%d", movie.MovieFile.Size)
+		e.Metadata["Language"] = movie.MovieFile.MediaInfo.AudioLanguages
+		e.Metadata["Subtitles"] = movie.MovieFile.MediaInfo.Subtitles
+		e.Metadata["Codecs"] = fmt.Sprintf("%s / %s", movie.MovieFile.MediaInfo.VideoCodec, movie.MovieFile.MediaInfo.AudioCodec)
 	}
 	if r.IsUpgrade {
 		e.Metadata["Quality Upgrade"] = "true"
@@ -191,12 +239,12 @@ type RadarrApplicationUpdateEvent struct {
 }
 
 type RadarrMovie struct {
-	ID          int    `json:"id"`
+	ID          int64  `json:"id"`
 	Title       string `json:"title"`
 	Year        int    `json:"year"`
 	ReleaseDate string `json:"releaseDate"`
 	FolderPath  string `json:"folderPath"`
-	TMDBID      int    `json:"tmdbId"`
+	TMDBID      int64  `json:"tmdbId"`
 	IMDBID      string `json:"imdbId"`
 }
 
@@ -208,7 +256,7 @@ type RadarrRemoteMovie struct {
 }
 
 type RadarrMovieFile struct {
-	ID             int    `json:"id"`
+	ID             int64  `json:"id"`
 	RelativePath   string `json:"relativePath"`
 	Path           string `json:"path"`
 	Quality        string `json:"quality"`
@@ -221,7 +269,7 @@ type RadarrMovieFile struct {
 
 type RadarrRelease struct {
 	Quality        string `json:"quality"`
-	QualityVersion int    `json:"qualityVersion"`
+	QualityVersion int64  `json:"qualityVersion"`
 	ReleaseGroup   string `json:"releaseGroup"`
 	ReleaseTitle   string `json:"releaseTitle"`
 	Indexer        string `json:"indexer"`

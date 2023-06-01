@@ -1,49 +1,45 @@
 package config
 
 import (
+	"os"
+
 	"github.com/gookit/validate"
-	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/providers/confmap"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/v2"
+	"gopkg.in/yaml.v3"
 )
 
+// todo: find a better way than passing yaml.Node around
 type SinkSourceConfig struct {
-	Name   string      `koanf:"name"`
-	Type   string      `koanf:"type"`
-	Config interface{} `koanf:"config"`
+	Name   string    `yaml:"name"`
+	Type   string    `yaml:"type"`
+	Config yaml.Node `yaml:"config"`
 }
 
 type Config struct {
-	QueueSize     int                `koanf:"queue-size" validate:"required"`
-	SinkQueueSize int                `koanf:"sink-queue-size" validate:"required"`
-	LogLevel      string             `koanf:"log-level"` // TODO: build validator
-	LogFormat     string             `koanf:"log-format" validate:"in:console,json"`
-	Interface     string             `koanf:"interface" validate:"required|ip"`
-	Port          int                `koanf:"port" validate:"required"`
-	Sources       []SinkSourceConfig `koanf:"sources"`
-	Sinks         []SinkSourceConfig `koanf:"sinks"`
+	QueueSize     int                `yaml:"queue-size" validate:"required"`
+	SinkQueueSize int                `yaml:"sink-queue-size" validate:"required"`
+	LogLevel      string             `yaml:"log-level"` // TODO: build validator
+	LogFormat     string             `yaml:"log-format" validate:"in:console,json"`
+	Interface     string             `yaml:"interface" validate:"required|ip"`
+	Port          int                `yaml:"port" validate:"required"`
+	Sources       []SinkSourceConfig `yaml:"sources"`
+	Sinks         []SinkSourceConfig `yaml:"sinks"`
 }
 
 func LoadConfig(configFile string) (*Config, error) {
-	k := koanf.New(".")
+	c := Config{
+		LogLevel:  "info",
+		LogFormat: "Console",
+		Interface: "0.0.0.0",
+		Port:      8080,
+	}
 
-	err := k.Load(confmap.Provider(map[string]interface{}{
-		"log-level":  "info",
-		"log-format": "console",
-		"interface":  "0.0.0.0",
-		"port":       8080,
-	}, "."), nil)
+	yamlFile, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
-		return nil, err
-	}
-
-	var c Config
-	if err := k.Unmarshal("", &c); err != nil {
+	err = yaml.Unmarshal(yamlFile, &c)
+	if err != nil {
 		return nil, err
 	}
 	return &c, nil

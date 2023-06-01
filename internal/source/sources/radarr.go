@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
+	"github.com/rs/zerolog/log"
 	"github.com/rtrox/informer/internal/event"
 	"github.com/rtrox/informer/internal/source"
 )
@@ -27,14 +28,15 @@ func (radarr *Radarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.
 	if err := render.Bind(r, &re); err != nil {
 		return event.Event{}, err
 	}
-
-	e := event.Event{
-		Source:          RadarrSource,
-		EventType:       re.EventType.Event(),
-		SourceEventType: re.EventType.String(),
-		SourceIconURL:   RadarrSourceIconURL,
+	log.Info().Interface("input", re).Msg("Handling Radarr event.")
+	switch re.EventType {
+	case RadarrEventHealth:
+		return HandleHealthIssue(re)
+	case RadarrEventUpdate:
+		return HandleApplicationUpdate(re)
+	default:
+		return HandleMovieEvent(re)
 	}
-	return e, nil
 }
 
 func NewRadarrWebhook(_ interface{}) source.Source {
@@ -45,8 +47,17 @@ func ValidateRadarrConfig(_ interface{}) error {
 	return nil
 }
 
+func commonRadarrFields(r RadarrEvent) event.Event {
+	return event.Event{
+		Source:          RadarrSource,
+		EventType:       r.EventType.Event(),
+		SourceEventType: r.EventType.String(),
+		SourceIconURL:   RadarrSourceIconURL,
+	}
+}
+
 func HandleHealthIssue(r RadarrEvent) (event.Event, error) {
-	var e event.Event
+	e := commonRadarrFields(r)
 	e.Title = fmt.Sprintf("%s Health %s: %s", RadarrSource, r.Level, r.Type)
 	e.Description = r.Message
 	*e.LinkURL = r.WikiUrl
@@ -54,7 +65,7 @@ func HandleHealthIssue(r RadarrEvent) (event.Event, error) {
 }
 
 func HandleApplicationUpdate(r RadarrEvent) (event.Event, error) {
-	var e event.Event
+	e := commonRadarrFields(r)
 	e.Title = r.Message
 	e.Description = r.Message
 	e.Metadata = map[string]string{
@@ -65,7 +76,7 @@ func HandleApplicationUpdate(r RadarrEvent) (event.Event, error) {
 }
 
 func HandleMovieEvent(r RadarrEvent) (event.Event, error) {
-	var e event.Event
+	e := commonRadarrFields(r)
 	e.Title = fmt.Sprintf("%s: %s", r.EventType.Description(), r.Movie.Title)
 	e.Description = fmt.Sprintf("Movie %s", r.EventType.Description())
 	e.Metadata = map[string]string{}

@@ -1,8 +1,6 @@
 package sinks
 
 import (
-	"encoding/json"
-
 	"github.com/rs/zerolog/log"
 	"github.com/rtrox/informer/internal/event"
 	"github.com/rtrox/informer/internal/sink"
@@ -26,14 +24,12 @@ func NewLog(_ interface{}) sink.Sink {
 }
 
 func (_ *Log) processEvent(e event.Event) {
-	s, _ := json.Marshal(e)
 	log.Info().
 		Str("source", e.Source).
 		Str("event_type", e.EventType.String()).
 		Str("name", e.Title).
 		Str("description", e.Description).
 		Str("source_event_type", e.SourceEventType).
-		Str("raw_json", string(s)).
 		Msg("Event Received.")
 }
 

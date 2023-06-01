@@ -40,6 +40,7 @@ func (s *SourceManager) UpdateSources(sources map[string]Source) {
 func (s *SourceManager) Routes() *chi.Mux {
 	router := chi.NewRouter()
 	router.Post("/{source_slug}", s.HandleHTTP)
+	router.Put("/{source_slug}", s.HandleHTTP)
 	return router
 }
 

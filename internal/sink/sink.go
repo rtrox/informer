@@ -12,5 +12,6 @@ type Sink interface {
 	OnObjectFailed(e event.Event) error
 	OnInformational(e event.Event) error
 	OnHealthIssue(e event.Event) error
+	OnTestEvent(e event.Event) error
 	Done() // should block until closed
 }

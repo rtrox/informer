@@ -46,6 +46,8 @@ func (s *sinkProcessor) ProcessEvent(e event.Event) error {
 		return s.sink.OnInformational(e)
 	case event.HealthIssue:
 		return s.sink.OnHealthIssue(e)
+	case event.TestEvent:
+		return s.sink.OnTestEvent(e)
 	default:
 		return fmt.Errorf("unknown event type: %d", e.EventType)
 	}

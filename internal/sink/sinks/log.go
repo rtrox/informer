@@ -72,6 +72,11 @@ func (s *Log) OnHealthIssue(e event.Event) error {
 	return nil
 }
 
+func (s *Log) OnTestEvent(e event.Event) error {
+	s.processEvent(e)
+	return nil
+}
+
 func (s *Log) Done() {
 	// do nothing, no spawned threads
 }

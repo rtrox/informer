@@ -3,7 +3,7 @@ module github.com/rtrox/informer
 go 1.20
 
 require (
-	github.com/go-chi/chi v1.5.4
+	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/render v1.0.2
 	github.com/gookit/validate v1.4.6
 	github.com/knadh/koanf/parsers/yaml v0.1.0

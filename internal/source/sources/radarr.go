@@ -118,9 +118,11 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 		for _, image := range movie.Images {
 			switch image.CoverType {
 			case "poster":
-				*e.ThumbnailURL = image.RemoteURL
+				img := image.RemoteURL
+				e.ThumbnailURL = &img
 			case "fanart":
-				*e.ImageURL = image.RemoteURL
+				img := image.RemoteURL
+				e.ImageURL = &img
 			}
 		}
 	}

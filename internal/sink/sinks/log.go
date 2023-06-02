@@ -4,6 +4,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/rtrox/informer/internal/event"
 	"github.com/rtrox/informer/internal/sink"
+	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -19,7 +20,7 @@ type LogConfig struct {
 
 type Log struct{}
 
-func NewLog(_ interface{}) sink.Sink {
+func NewLog(_ yaml.Node) sink.Sink {
 	return &Log{}
 }
 
@@ -73,9 +74,6 @@ func (s *Log) Done() {
 	// do nothing, no spawned threads
 }
 
-func ValidateLogConfig(opts interface{}) error {
-	if _, ok := opts.(*LogConfig); !ok {
-		return sink.InvalidConfigError{}
-	}
+func ValidateLogConfig(opts yaml.Node) error {
 	return nil
 }

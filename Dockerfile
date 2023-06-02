@@ -1,5 +1,5 @@
 FROM golang:1.20-alpine AS build_base
-WORKDIR /tmp/spotify-sentry
+WORKDIR /tmp/informer
 
 ARG VERSION="devel"
 

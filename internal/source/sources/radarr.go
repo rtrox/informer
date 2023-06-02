@@ -3,6 +3,7 @@ package sources
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -38,10 +39,16 @@ type Radarr struct {
 
 func (rd *Radarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.Event, error) {
 	var re RadarrEvent
+
+	bodyBytes, _ := io.ReadAll(r.Body)
+	r.Body.Close()
+	r.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+	log.Info().Interface("body", string(bodyBytes)).Msg("Handling Radarr event.")
+
 	if err := render.Bind(r, &re); err != nil {
 		return event.Event{}, err
 	}
-	log.Info().Interface("input", re).Msg("Handling Radarr event.")
+
 	switch re.EventType {
 	case RadarrEventHealth:
 		return rd.HandleHealthIssue(re)
@@ -99,7 +106,7 @@ func (rd *Radarr) HandleApplicationUpdate(r RadarrEvent) (event.Event, error) {
 
 func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 	e := commonRadarrFields(r)
-	e.Title = fmt.Sprintf("%s: %s", r.EventType.Description(), r.Movie.Title)
+	e.Title = fmt.Sprintf("[%s] %s", r.EventType.Description(), r.Movie.Title)
 	e.Description = fmt.Sprintf("Movie %s", r.EventType.Description())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

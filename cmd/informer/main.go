@@ -15,7 +15,6 @@ import (
 	flag "github.com/spf13/pflag"
 
 	"github.com/rtrox/informer/internal/config"
-	"github.com/rtrox/informer/internal/event"
 	"github.com/rtrox/informer/internal/handler"
 	"github.com/rtrox/informer/internal/sink"
 	"github.com/rtrox/informer/internal/source"
@@ -87,17 +86,6 @@ func main() {
 	sinkManager.Start(done)
 
 	config.UpdateSinkManagerConfig(sinkManager, conf.Sinks)
-
-	sinkManager.EnqueueEvent(event.Event{
-		EventType:       event.ObjectAdded,
-		Title:           "Test Event",
-		Description:     "This is a test event.",
-		SourceEventType: "TestEvent",
-		Metadata: map[string]string{
-			"test": "test",
-		},
-	})
-	log.Info().Msg("Event sent.")
 
 	sourceManager := source.NewSourceManager()
 	config.UpdateSourceManagerConfig(sourceManager, conf.Sources)

@@ -92,10 +92,8 @@ func (rd *Radarr) HandleApplicationUpdate(r RadarrEvent) (event.Event, error) {
 	e := commonRadarrFields(r)
 	e.Title = r.Message
 	e.Description = r.Message
-	e.Metadata = map[string]string{
-		"Previous Version": r.PreviousVersion,
-		"New Version":      r.NewVersion,
-	}
+	e.Metadata.Add("Previous Version", r.PreviousVersion)
+	e.Metadata.Add("New Version", r.NewVersion)
 	return e, nil
 }
 
@@ -103,7 +101,6 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 	e := commonRadarrFields(r)
 	e.Title = fmt.Sprintf("%s: %s", r.EventType.Description(), r.Movie.Title)
 	e.Description = fmt.Sprintf("Movie %s", r.EventType.Description())
-	e.Metadata = map[string]string{}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -113,12 +110,11 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 	}
 
 	if r.Movie != nil {
-		e.Metadata["Movie Title"] = r.Movie.Title
-		e.Metadata["Year"] = fmt.Sprintf("%d", r.Movie.Year)
-		e.Metadata["Release Date"] = r.Movie.ReleaseDate
-		e.Metadata["Rating"] = fmt.Sprintf("%f", movie.Ratings.Value)
-		e.Metadata["Genres"] = strings.Join(movie.Genres, ", ")
-		e.Metadata["Overview"] = movie.Overview
+		e.Metadata.Add("Overview", movie.Overview)
+		e.Metadata.AddInline("Rating", fmt.Sprintf("%f", movie.Ratings.Value))
+		e.Metadata.AddInline("Release Date", r.Movie.ReleaseDate)
+		e.Metadata.Add("Genres", strings.Join(movie.Genres, ", "))
+
 		for _, image := range movie.Images {
 			switch image.CoverType {
 			case "poster":
@@ -128,23 +124,24 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 			}
 		}
 	}
-	if r.Release != nil {
-		e.Metadata["Release"] = r.Release.ReleaseTitle
-		e.Metadata["Release Group"] = r.Release.ReleaseGroup
-		e.Metadata["Quality"] = r.Release.Quality
-	}
-	if r.MovieFile != nil {
-		e.Metadata["Quality"] = r.MovieFile.Quality
-		e.Metadata["Release Group"] = r.MovieFile.ReleaseGroup
-		e.Metadata["Release"] = r.MovieFile.SceneName
 
-		e.Metadata["File Size"] = fmt.Sprintf("%d", movie.MovieFile.Size)
-		e.Metadata["Language"] = movie.MovieFile.MediaInfo.AudioLanguages
-		e.Metadata["Subtitles"] = movie.MovieFile.MediaInfo.Subtitles
-		e.Metadata["Codecs"] = fmt.Sprintf("%s / %s", movie.MovieFile.MediaInfo.VideoCodec, movie.MovieFile.MediaInfo.AudioCodec)
+	if r.MovieFile != nil {
+		e.Metadata.AddInline("Quality", r.MovieFile.Quality)
+		e.Metadata.AddInline("Codecs", fmt.Sprintf("%s / %s", movie.MovieFile.MediaInfo.VideoCodec, movie.MovieFile.MediaInfo.AudioCodec))
+		e.Metadata.AddInline("File Size", fmt.Sprintf("%d", r.MovieFile.SizeBytes))
+		e.Metadata.Add("Language", movie.MovieFile.MediaInfo.AudioLanguages)
+		e.Metadata.Add("Subtitles", movie.MovieFile.MediaInfo.Subtitles)
+		e.Metadata.Add("Release", r.MovieFile.SceneName)
+		e.Metadata.Add("Release Group", r.MovieFile.ReleaseGroup)
+
+	} else if r.Release != nil {
+		e.Metadata.Add("Quality", r.Release.Quality)
+		e.Metadata.Add("Release", r.Release.ReleaseTitle)
+		e.Metadata.Add("Release Group", r.Release.ReleaseGroup)
 	}
+
 	if r.IsUpgrade {
-		e.Metadata["Quality Upgrade"] = "true"
+		e.Metadata.Add("Quality Upgrade", "true")
 	}
 	return e, nil
 }

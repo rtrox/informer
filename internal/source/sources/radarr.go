@@ -118,11 +118,12 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 
 	if r.Movie != nil {
 		e.Metadata.Add("Overview", movie.Overview)
-		// TODO: the Ratings type is fixed in `main`, but starr hasn't cut a release since Feb 2022
-		// e.Metadata.AddInline("Rating", fmt.Sprintf("%.1f", movie.Ratings.Value))
+		if rating, ok := movie.Ratings["rottenTomatoes"]; ok {
+			e.Metadata.AddInline("Rating", fmt.Sprintf(":tomato: %.1f", rating.Value))
+		}
 		e.Metadata.AddInline("Release Date", r.Movie.ReleaseDate)
 		e.Metadata.AddInline("Runtime", fmt.Sprintf("%d minutes", movie.Runtime))
-		e.Metadata.AddInline("Rated", movie.Certification)
+		e.Metadata.Add("Rated", movie.Certification)
 		e.Metadata.Add("Genres", strings.Join(movie.Genres, ", "))
 
 		for _, image := range movie.Images {

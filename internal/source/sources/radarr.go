@@ -216,7 +216,7 @@ func (e *RadarrEventType) UnmarshalJSON(b []byte) error {
 type RadarrEvent struct {
 	DownloadClient     string             `json:"downloadClient,omitempty"`
 	DownloadClientType string             `json:"downloadClientType,omitempty"`
-	DownloadID         int                `json:"downloadId,omitempty"`
+	DownloadID         string             `json:"downloadId,omitempty"`
 	IsUpgrade          bool               `json:"isUpgrade,omitempty"`
 	DeleteReason       string             `json:"deleteReason,omitempty"`
 	Level              string             `json:"level,omitempty"`

@@ -118,8 +118,11 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 
 	if r.Movie != nil {
 		e.Metadata.Add("Overview", movie.Overview)
-		e.Metadata.AddInline("Rating", fmt.Sprintf("%f", movie.Ratings.Value))
+		// // TODO: the Ratings type is broken upstream. should be map[string]Ratings, with type instead of popularity
+		// e.Metadata.AddInline("Rating", fmt.Sprintf("%.1f", movie.Ratings.Value))
 		e.Metadata.AddInline("Release Date", r.Movie.ReleaseDate)
+		e.Metadata.AddInline("Runtime", fmt.Sprintf("%d minutes", movie.Runtime))
+		e.Metadata.AddInline("Rated", movie.Certification)
 		e.Metadata.Add("Genres", strings.Join(movie.Genres, ", "))
 
 		for _, image := range movie.Images {
@@ -140,13 +143,15 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 		e.Metadata.AddInline("File Size", fmt.Sprintf("%d", r.MovieFile.SizeBytes))
 		e.Metadata.Add("Language", movie.MovieFile.MediaInfo.AudioLanguages)
 		e.Metadata.Add("Subtitles", movie.MovieFile.MediaInfo.Subtitles)
-		e.Metadata.Add("Release", r.MovieFile.SceneName)
 		e.Metadata.Add("Release Group", r.MovieFile.ReleaseGroup)
+		e.Metadata.Add("Release", r.MovieFile.SceneName)
 
 	} else if r.Release != nil {
-		e.Metadata.Add("Quality", r.Release.Quality)
-		e.Metadata.Add("Release", r.Release.ReleaseTitle)
+		e.Metadata.AddInline("Quality", r.Release.Quality)
+		e.Metadata.AddInline("Formats", strings.Join(r.Release.CustomFormats, ", "))
+		e.Metadata.AddInline("File Size", fmt.Sprintf("%d", r.Release.SizeBytes))
 		e.Metadata.Add("Release Group", r.Release.ReleaseGroup)
+		e.Metadata.Add("Release", r.Release.ReleaseTitle)
 	}
 
 	if r.IsUpgrade {
@@ -231,6 +236,8 @@ type RadarrEvent struct {
 	RemoteMovie        *RadarrRemoteMovie `json:"remoteMovie,omitempty"`
 	Release            *RadarrRelease     `json:"release,omitempty"`
 	RenamedMovieFiles  []RadarrMovieFile  `json:"renamedMovieFiles,omitempty"`
+	InstanceName       string             `json:"instanceName,omitempty"`
+	ApplicationURL     string             `json:"applicationUrl,omitempty"`
 }
 
 func (e RadarrEvent) Bind(r *http.Request) error {
@@ -274,12 +281,15 @@ type RadarrMovieFile struct {
 }
 
 type RadarrRelease struct {
-	Quality        string `json:"quality"`
-	QualityVersion int64  `json:"qualityVersion"`
-	ReleaseGroup   string `json:"releaseGroup"`
-	ReleaseTitle   string `json:"releaseTitle"`
-	Indexer        string `json:"indexer"`
-	SizeBytes      int64  `json:"size"`
+	Quality           string   `json:"quality"`
+	QualityVersion    int64    `json:"qualityVersion"`
+	ReleaseGroup      string   `json:"releaseGroup"`
+	ReleaseTitle      string   `json:"releaseTitle"`
+	Indexer           string   `json:"indexer"`
+	SizeBytes         int64    `json:"size"`
+	CustomFormatScore int64    `json:"customFormatScore"`
+	CustomFormats     []string `json:"customFormats"`
+	// IndexerFlags ?? `json:"indexerFlags"`
 }
 
 type RadarrHealthLevel string

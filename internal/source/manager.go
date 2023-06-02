@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/rs/zerolog/log"
 	"github.com/rtrox/informer/internal/handler"
 
 	"github.com/go-chi/chi/v5"
@@ -58,6 +59,7 @@ func (s *SourceManager) HandleHTTP(w http.ResponseWriter, r *http.Request) {
 
 	e, err := s.sources[sourceSlug].HandleHTTP(w, r)
 	if err != nil {
+		log.Error().Err(err).Msg("Error while Handling Source")
 		render.Status(r, http.StatusInternalServerError) // TODO: better error handling
 		render.JSON(w, r, map[string]interface{}{"code": http.StatusInternalServerError, "message": err.Error()})
 	}

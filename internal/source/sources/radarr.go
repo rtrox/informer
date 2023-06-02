@@ -118,7 +118,7 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 
 	if r.Movie != nil {
 		e.Metadata.Add("Overview", movie.Overview)
-		// // TODO: the Ratings type is broken upstream. should be map[string]Ratings, with type instead of popularity
+		// TODO: the Ratings type is fixed in `main`, but starr hasn't cut a release since Feb 2022
 		// e.Metadata.AddInline("Rating", fmt.Sprintf("%.1f", movie.Ratings.Value))
 		e.Metadata.AddInline("Release Date", r.Movie.ReleaseDate)
 		e.Metadata.AddInline("Runtime", fmt.Sprintf("%d minutes", movie.Runtime))

@@ -62,7 +62,9 @@ func (s *SourceManager) HandleHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Error while Handling Source")
 		render.Status(r, http.StatusInternalServerError) // TODO: better error handling
 		render.JSON(w, r, map[string]interface{}{"code": http.StatusInternalServerError, "message": err.Error()})
+		return
 	}
+	// Attach Event to request to be enqueued in middleware.
 	req := r.WithContext(handler.WithEventContext(r.Context(), e))
 	*r = *req
 }

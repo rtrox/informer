@@ -1,4 +1,5 @@
-name: Create Docker Image
+---
+name: Create Docker Image (Matrixed)
 
 on:
   workflow_call:
@@ -13,35 +14,34 @@ on:
         required: false
         default: ''
         type: string
+
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  PLATFORMS: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64
+  IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository }}${{ inputs.suffix }}
+
 
 jobs:
-  release-docker-image:
+  build:
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/386
+          - linux/amd64
+          - linux/arm/v6
+          - linux/arm/v7
+          - linux/arm64
     steps:
-      - name: checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v2
 
-      # https://github.com/docker/setup-qemu-action
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      # https://github.com/docker/setup-buildx-action
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        if: ${{ inputs.push == 'true' }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+          images: ${{ IMAGE_NAME }}
+
       - name: Docker Login
         uses: docker/login-action@v2
         if: ${{ inputs.push == 'true' }}
@@ -49,6 +49,53 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push by Digest
+        id: build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          cache-from: gha,scope=${{ github.ref_name }}-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}-${{ matrix.platform }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
+          build-args:
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+
+      - name: Export Digest
+        if: ${{ inputs.push == 'true' }}
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload Digest
+        if: ${{ inputs.push == 'true' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: digests
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    if: ${{ inputs.push == 'true' }}
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v3
+        with:
+          name: digests
+          path: /tmp/digests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -63,27 +110,21 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        env:
-          PUSH: ${{ inputs.push }}
+
+      - name: Docker Login
+        uses: docker/login-action@v2
+        if: ${{ inputs.push == 'true' }}
         with:
-          context: ./
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-          file: ./Dockerfile
-          platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64
-          push: ${{ fromJSON(env.PUSH) }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
-            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move cache
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Inspect Image
+        run: |
+          docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}

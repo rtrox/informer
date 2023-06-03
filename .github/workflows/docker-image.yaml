@@ -14,6 +14,13 @@ on:
         required: false
         default: ''
         type: string
+    outputs:
+      version:
+        description: 'Version of the image (sha-* or v*)'
+        value: ${{ jobs.merge.outputs.version }}
+      registry_image:
+        description: "Registry image name (without tag)"
+        value: ${{ jobs.merge.outputs.registry_image }}
 
 env:
   REGISTRY: ghcr.io
@@ -89,6 +96,9 @@ jobs:
     needs:
       - build
     if: ${{ inputs.push == 'true' }}
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      registry_image: ${{ steps.inspect.outputs.registry_image }}
 
     steps:
       - name: Download digests
@@ -129,5 +139,7 @@ jobs:
             $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ inputs.suffix }}@sha256:%s ' *)
 
       - name: Inspect Image
+        id: inspect
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ inputs.suffix }}:${{ steps.meta.outputs.version }}
+          echo registry_image="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ inputs.suffix }}" >> "$GITHUB_OUTPUT"

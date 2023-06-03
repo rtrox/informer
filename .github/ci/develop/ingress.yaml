@@ -7,13 +7,13 @@ metadata:
     kubernetes.io/tls-acme: "true"
     ingress: "externaldns"
   labels:
-    app.kubernetes.io/instance: &name informer
+    app.kubernetes.io/instance: &name informer-devel
     app.kubernetes.io/name: *name
   name: *name
 spec:
   ingressClassName: nginx
   rules:
-    - host: &host informer.${SECRET_DOMAIN}
+    - host: &host informer-devel.${SECRET_DOMAIN}
       http:
         paths:
           - backend:
@@ -26,4 +26,4 @@ spec:
   tls:
     - hosts:
         - *host
-      secretName: informer-tls
+      secretName: informer-devel-tls

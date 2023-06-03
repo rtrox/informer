@@ -3,8 +3,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app.kubernetes.io/name: &name informer
-    app.kubernetes.io/instance: &instance informer
+    app.kubernetes.io/name: &name informer-devel
+    app.kubernetes.io/instance: &instance informer-devel
     app.kubernetes.io/part-of: *instance
     k8s-app: *name
   name: *name
@@ -81,4 +81,4 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: informer-config
+            name: informer-devel-config

@@ -10,5 +10,5 @@ images:
   - name: ghcr.io/rtrox/informer-devel
     newTag: sha-2e73cf8-20230603214722
 commonLabels:
-  app.kubernetes.io/part-of: informer
-  k8s-app: informer
+  app.kubernetes.io/part-of: informer-devel
+  k8s-app: informer-devel

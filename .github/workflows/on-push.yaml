@@ -27,7 +27,7 @@ jobs:
 
       - name: update-image-tag
         run: |
-          yq ".images |= map(select(.name == \"${{ needs.build-and-push.outputs.registry_image }}\").newTag=\"${{ needs.build-and-push.outputs.version }}\")" .github/ci/develop/kustomization.yaml
+          yq -i ".images |= map(select(.name == \"${{ needs.build-and-push.outputs.registry_image }}\").newTag=\"${{ needs.build-and-push.outputs.version }}\")" .github/ci/develop/kustomization.yaml
 
       - name: Create Pull Request
         id: cpr

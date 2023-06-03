@@ -140,10 +140,10 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 
 	if r.MovieFile != nil {
 		e.Metadata.AddInline("Quality", r.MovieFile.Quality)
-		e.Metadata.AddInline("Codecs", fmt.Sprintf("%s / %s", movie.MovieFile.MediaInfo.VideoCodec, movie.MovieFile.MediaInfo.AudioCodec))
+		e.Metadata.AddInline("Codecs", fmt.Sprintf("%s / %s", r.MovieFile.MediaInfo.VideoCodec, r.MovieFile.MediaInfo.AudioCodec))
 		e.Metadata.AddInline("File Size", fmt.Sprintf("%d", r.MovieFile.SizeBytes))
-		e.Metadata.Add("Language", movie.MovieFile.MediaInfo.AudioLanguages)
-		e.Metadata.Add("Subtitles", movie.MovieFile.MediaInfo.Subtitles)
+		e.Metadata.Add("Language", strings.Join(r.MovieFile.MediaInfo.AudioLanguages, ", "))
+		e.Metadata.Add("Subtitles", strings.Join(r.MovieFile.MediaInfo.Subtitles, ", "))
 		e.Metadata.Add("Release Group", r.MovieFile.ReleaseGroup)
 		e.Metadata.Add("Release", r.MovieFile.SceneName)
 
@@ -270,15 +270,29 @@ type RadarrRemoteMovie struct {
 }
 
 type RadarrMovieFile struct {
-	ID             int64  `json:"id"`
-	RelativePath   string `json:"relativePath"`
-	Path           string `json:"path"`
-	Quality        string `json:"quality"`
-	QualityVersion int    `json:"qualityVersion"`
-	ReleaseGroup   string `json:"releaseGroup"`
-	SceneName      string `json:"sceneName"`
-	IndexerFlags   string `json:"indexerFlags"`
-	SizeBytes      int64  `json:"size"`
+	ID             int64           `json:"id"`
+	RelativePath   string          `json:"relativePath"`
+	Path           string          `json:"path"`
+	Quality        string          `json:"quality"`
+	QualityVersion int             `json:"qualityVersion"`
+	ReleaseGroup   string          `json:"releaseGroup"`
+	SceneName      string          `json:"sceneName"`
+	IndexerFlags   string          `json:"indexerFlags"`
+	SizeBytes      int64           `json:"size"`
+	DateAdded      string          `json:"dateAdded"` // TODO: Parse as DateTime
+	MediaInfo      RadarrMediaInfo `json:"mediaInfo"`
+}
+
+type RadarrMediaInfo struct {
+	AudioChannels         int      `json:"audioChannels"`
+	AudioCodec            string   `json:"audioCodec"`
+	AudioLanguages        []string `json:"audioLanguages"`
+	Height                int      `json:"height"`
+	Width                 int      `json:"width"`
+	Subtitles             []string `json:"subtitles"`
+	VideoCodec            string   `json:"videoCodec"`
+	VideoDynamicRange     string   `json:"videoDynamicRange"`
+	VideoDynamicRangeType string   `json:"videoDynamicRangeType"`
 }
 
 type RadarrRelease struct {

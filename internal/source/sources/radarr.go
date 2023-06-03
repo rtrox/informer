@@ -284,7 +284,7 @@ type RadarrMovieFile struct {
 }
 
 type RadarrMediaInfo struct {
-	AudioChannels         int      `json:"audioChannels"`
+	AudioChannels         float64  `json:"audioChannels"`
 	AudioCodec            string   `json:"audioCodec"`
 	AudioLanguages        []string `json:"audioLanguages"`
 	Height                int      `json:"height"`

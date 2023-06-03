@@ -32,6 +32,17 @@ jobs:
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: "[CI][Dev] Update image tag to ${{ needs.build-and-push.outputs.version }}"
+          committer: GitHub <noreply@github.com>
+          title: "[CI][Dev] Update image tag to ${{ needs.build-and-push.outputs.version }}"
+          body: |
+            This PR was automatically created by GitHub Actions, and updates the image tag on the development deployment to ${{ needs.build-and-push.outputs.version }}.
+          signoff: true
+          delete-branch: true
+          labels: ci
+          reviewers: rtrox
+          assignees: rtrox
 
       - name: Auto Merge Pull Request
         if: steps.cpr.outputs.pull-request-operation == 'created'

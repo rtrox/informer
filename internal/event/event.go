@@ -5,40 +5,38 @@ import "net/http"
 type EventType int
 
 const (
-	ObjectAdded EventType = iota
+	Unknown EventType = iota
+	ObjectAdded
+	ObjectGrabbed
+	ObjectDownloaded
+	ObjectRenamed
 	ObjectUpdated
 	ObjectCompleted
 	ObjectFailed
+	ObjectFileDeleted
 	ObjectDeleted
 	Informational
 	HealthIssue
+	HealthRestored
 	TestEvent
-	Unknown
 )
-
-// Radarr Webhook Types as Examples
-// OnGrab -> ObjectUpdated
-// OnDownload -> ObjectUpdated
-// OnMovieRename -> ObjectCompleted
-// OnMovieAdded -> ObjectAdded
-// OnMovieFileDelete -> ObjectUpdated
-// OnMovieDelete -> ObjectDeleted
-// OnHealthIssue -> HealthIssue
-// OnHealthRestored -> Informational
-// OnApplicationUpdate -> Informational
-// OnManualInteractionRequired -> Informational
 
 func (e EventType) String() string {
 	return [...]string{
+		"Unknown",
 		"ObjectAdded",
+		"ObjectGrabbed",
+		"ObjectDownloaded",
+		"ObjectRenamed",
 		"ObjectUpdated",
 		"ObjectCompleted",
 		"ObjectFailed",
+		"ObjectFileDeleted",
 		"ObjectDeleted",
 		"Informational",
 		"HealthIssue",
+		"HealthRestored",
 		"TestEvent",
-		"Unknown",
 	}[e]
 }
 

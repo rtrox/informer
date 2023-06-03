@@ -119,7 +119,7 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 	if r.Movie != nil {
 		e.Metadata.Add("Overview", movie.Overview)
 		if rating, ok := movie.Ratings["rottenTomatoes"]; ok {
-			e.Metadata.AddInline("Rating", fmt.Sprintf(":tomato: %.1f", rating.Value))
+			e.Metadata.AddInline("Rating", fmt.Sprintf("🍅 %.1f", rating.Value))
 		}
 		e.Metadata.AddInline("Release Date", r.Movie.ReleaseDate)
 		e.Metadata.AddInline("Runtime", fmt.Sprintf("%d minutes", movie.Runtime))
@@ -156,7 +156,7 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 	}
 
 	if r.IsUpgrade {
-		e.Metadata.Add("Quality Upgrade", "true")
+		e.Metadata.Add("Quality Upgrade", "✅")
 	}
 	return e, nil
 }
@@ -164,15 +164,16 @@ func (rd *Radarr) HandleMovieEvent(r RadarrEvent) (event.Event, error) {
 type RadarrEventType string
 
 const (
-	RadarrEventGrab        RadarrEventType = "Grab"
-	RadarrEventDownload    RadarrEventType = "Download"
-	RadarrEventRename      RadarrEventType = "Rename"
-	RadarrEventAdded       RadarrEventType = "MovieAdded"
-	RadarrEventFileDeleted RadarrEventType = "MovieFileDelete"
-	RadarrEventMovieDelete RadarrEventType = "MovieDelete"
-	RadarrEventHealth      RadarrEventType = "Health"
-	RadarrEventUpdate      RadarrEventType = "ApplicationUpdate"
-	RadarrEventTest        RadarrEventType = "Test"
+	RadarrEventGrab           RadarrEventType = "Grab"
+	RadarrEventDownload       RadarrEventType = "Download"
+	RadarrEventRename         RadarrEventType = "Rename"
+	RadarrEventAdded          RadarrEventType = "MovieAdded"
+	RadarrEventFileDeleted    RadarrEventType = "MovieFileDelete"
+	RadarrEventMovieDelete    RadarrEventType = "MovieDelete"
+	RadarrEventHealth         RadarrEventType = "Health"
+	RadarrEventHealthRestored RadarrEventType = "HealthRestored"
+	RadarrEventUpdate         RadarrEventType = "ApplicationUpdate"
+	RadarrEventTest           RadarrEventType = "Test"
 )
 
 func (e RadarrEventType) String() string {
@@ -181,29 +182,31 @@ func (e RadarrEventType) String() string {
 
 func (e RadarrEventType) Event() event.EventType {
 	return map[RadarrEventType]event.EventType{
-		RadarrEventGrab:        event.ObjectUpdated,
-		RadarrEventDownload:    event.ObjectUpdated,
-		RadarrEventRename:      event.ObjectCompleted,
-		RadarrEventAdded:       event.ObjectAdded,
-		RadarrEventFileDeleted: event.ObjectUpdated,
-		RadarrEventMovieDelete: event.ObjectDeleted,
-		RadarrEventHealth:      event.HealthIssue,
-		RadarrEventUpdate:      event.Informational,
-		RadarrEventTest:        event.TestEvent,
+		RadarrEventGrab:           event.ObjectGrabbed,
+		RadarrEventDownload:       event.ObjectDownloaded,
+		RadarrEventRename:         event.ObjectCompleted,
+		RadarrEventAdded:          event.ObjectAdded,
+		RadarrEventFileDeleted:    event.ObjectFileDeleted,
+		RadarrEventMovieDelete:    event.ObjectDeleted,
+		RadarrEventHealth:         event.HealthIssue,
+		RadarrEventHealthRestored: event.HealthRestored,
+		RadarrEventUpdate:         event.Informational,
+		RadarrEventTest:           event.TestEvent,
 	}[e]
 }
 
 func (e RadarrEventType) Description() string {
 	return map[RadarrEventType]string{
-		RadarrEventGrab:        "Grabbed",
-		RadarrEventDownload:    "Downloaded",
-		RadarrEventRename:      "Renamed",
-		RadarrEventAdded:       "Added",
-		RadarrEventFileDeleted: "File Deleted",
-		RadarrEventMovieDelete: "Deleted",
-		RadarrEventHealth:      "Health Issue",
-		RadarrEventUpdate:      "Application Update",
-		RadarrEventTest:        "Test",
+		RadarrEventGrab:           "Grabbed",
+		RadarrEventDownload:       "Downloaded",
+		RadarrEventRename:         "Renamed",
+		RadarrEventAdded:          "Added",
+		RadarrEventFileDeleted:    "File Deleted",
+		RadarrEventMovieDelete:    "Deleted",
+		RadarrEventHealth:         "Health Issue",
+		RadarrEventHealthRestored: "Health Restored",
+		RadarrEventUpdate:         "Application Update",
+		RadarrEventTest:           "Test",
 	}[e]
 
 }

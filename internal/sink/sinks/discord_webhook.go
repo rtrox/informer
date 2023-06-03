@@ -67,8 +67,22 @@ func (d *DiscordWebhook) Done() {
 	d.client.Close(ctx)
 }
 
+func (d *DiscordWebhook) EventColor(e event.Event) int {
+	return map[event.EventType]int{
+		event.ObjectAdded:     3447003,  // Blue
+		event.ObjectUpdated:   10181046, // Purple
+		event.ObjectCompleted: 5763719,  // Green
+		event.ObjectFailed:    15158332, // Red
+		event.ObjectDeleted:   15158332, // Red
+		event.Informational:   16777215, // White
+		event.HealthIssue:     16711680, // Orange
+		event.TestEvent:       16777215, // White
+	}[e.EventType]
+}
+
 func (d *DiscordWebhook) eventToEmbed(event event.Event) discord.Embed {
 	e := discord.NewEmbedBuilder()
+	e.SetColor(d.EventColor(event))
 	e.SetTitle(event.Title)
 	e.SetDescription(event.Description)
 	if event.ThumbnailURL != nil {
@@ -85,7 +99,7 @@ func (d *DiscordWebhook) eventToEmbed(event event.Event) discord.Embed {
 	return e.Build()
 }
 
-func (d *DiscordWebhook) processEvent(e event.Event) error {
+func (d *DiscordWebhook) ProcessEvent(e event.Event) error {
 	embed := d.eventToEmbed(e)
 	msg := discord.NewWebhookMessageCreateBuilder().
 		SetEmbeds(embed).
@@ -98,36 +112,4 @@ func (d *DiscordWebhook) processEvent(e event.Event) error {
 		return err
 	}
 	return nil
-}
-
-func (d *DiscordWebhook) OnObjectAdded(e event.Event) error {
-	return d.processEvent(e)
-}
-
-func (d *DiscordWebhook) OnObjectUpdated(e event.Event) error {
-	return d.processEvent(e)
-}
-
-func (d *DiscordWebhook) OnObjectDeleted(e event.Event) error {
-	return d.processEvent(e)
-}
-
-func (d *DiscordWebhook) OnObjectCompleted(e event.Event) error {
-	return d.processEvent(e)
-}
-
-func (d *DiscordWebhook) OnObjectFailed(e event.Event) error {
-	return d.processEvent(e)
-}
-
-func (d *DiscordWebhook) OnInformational(e event.Event) error {
-	return d.processEvent(e)
-}
-
-func (d *DiscordWebhook) OnHealthIssue(e event.Event) error {
-	return d.processEvent(e)
-}
-
-func (d *DiscordWebhook) OnTestEvent(e event.Event) error {
-	return d.processEvent(e)
 }

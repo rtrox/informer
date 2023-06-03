@@ -15,6 +15,7 @@ func init() {
 }
 
 type LogConfig struct {
+	// TODO: not used yet.
 	Level string `yaml:"level"`
 }
 
@@ -24,49 +25,10 @@ func NewLog(_ yaml.Node) sink.Sink {
 	return &Log{}
 }
 
-func (_ *Log) processEvent(e event.Event) {
+func (_ *Log) ProcessEvent(e event.Event) error {
 	log.Info().
 		Interface("event", e).
 		Msg("Event Received.")
-}
-
-func (s *Log) OnObjectAdded(e event.Event) error {
-	s.processEvent(e)
-	return nil
-}
-
-func (s *Log) OnObjectUpdated(e event.Event) error {
-	s.processEvent(e)
-	return nil
-}
-
-func (s *Log) OnObjectDeleted(e event.Event) error {
-	s.processEvent(e)
-	return nil
-}
-
-func (s *Log) OnObjectCompleted(e event.Event) error {
-	s.processEvent(e)
-	return nil
-}
-
-func (s *Log) OnObjectFailed(e event.Event) error {
-	s.processEvent(e)
-	return nil
-}
-
-func (s *Log) OnInformational(e event.Event) error {
-	s.processEvent(e)
-	return nil
-}
-
-func (s *Log) OnHealthIssue(e event.Event) error {
-	s.processEvent(e)
-	return nil
-}
-
-func (s *Log) OnTestEvent(e event.Event) error {
-	s.processEvent(e)
 	return nil
 }
 

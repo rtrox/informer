@@ -1,7 +1,6 @@
 package sink
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/rs/zerolog/log"
@@ -31,26 +30,10 @@ func (s *sinkProcessor) In() chan event.Event {
 }
 
 func (s *sinkProcessor) ProcessEvent(e event.Event) error {
-	switch e.EventType {
-	case event.ObjectAdded:
-		return s.sink.OnObjectAdded(e)
-	case event.ObjectUpdated:
-		return s.sink.OnObjectUpdated(e)
-	case event.ObjectDeleted:
-		return s.sink.OnObjectDeleted(e)
-	case event.ObjectCompleted:
-		return s.sink.OnObjectCompleted(e)
-	case event.ObjectFailed:
-		return s.sink.OnObjectFailed(e)
-	case event.Informational:
-		return s.sink.OnInformational(e)
-	case event.HealthIssue:
-		return s.sink.OnHealthIssue(e)
-	case event.TestEvent:
-		return s.sink.OnTestEvent(e)
-	default:
-		return fmt.Errorf("unknown event type: %d", e.EventType)
+	if e.EventType == event.Unknown {
+		return NewUnknownEventError(e.EventType)
 	}
+	return s.sink.ProcessEvent(e)
 }
 
 func (s *sinkProcessor) Start(wg *sync.WaitGroup) {

@@ -2,8 +2,6 @@ module github.com/rtrox/informer
 
 go 1.20
 
-replace golift.io/starr v0.14.1-0.20230602054021-f5530191f01e => github.com/rtrox/starr v0.0.0-20230604013323-67fcb74e010b
-
 require (
 	github.com/disgoorg/disgo v0.16.5
 	github.com/disgoorg/snowflake/v2 v2.0.1
@@ -13,7 +11,7 @@ require (
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/text v0.9.0
-	golift.io/starr v0.14.1-0.20230602054021-f5530191f01e
+	golift.io/starr v0.14.1-0.20230604034814-504c41a52f9b
 	gopkg.in/yaml.v3 v3.0.1
 )
 

@@ -2,6 +2,8 @@ module github.com/rtrox/informer
 
 go 1.20
 
+replace golift.io/starr => /home/rtrox/starr
+
 require (
 	github.com/disgoorg/disgo v0.16.5
 	github.com/disgoorg/snowflake/v2 v2.0.1

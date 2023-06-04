@@ -142,30 +142,27 @@ func (s *Sonarr) HandleSeriesEvent(se SonarrEvent) (event.Event, error) {
 func (s *Sonarr) HandleEpisodeEvent(se SonarrEvent) (event.Event, error) {
 	e := commonSonarrFields(se)
 
-	e.Title = fmt.Sprintf("[%s] %s (%d) - S%dE%d - %s",
+	e.Title = fmt.Sprintf("[%s] %s",
 		se.EventType.Description(),
 		se.Series.Title,
-		se.Series.Year,
-		se.Episodes[0].SeasonNumber,
-		se.Episodes[0].EpisodeNumber,
-		se.Episodes[0].Title,
 	)
 	e.Description = se.Message
+	var episodeList []string
+	for _, ep := range se.Episodes {
+		episodeList = append(episodeList, fmt.Sprintf("S%02dE%02d %s", ep.SeasonNumber, ep.EpisodeNumber, ep.Title))
+	}
+	episodeLabel := "Episode"
+	if len(se.Episodes) > 1 {
+		episodeLabel = "Episodes"
+	}
+	e.Metadata.Add(episodeLabel, strings.Join(episodeList, "\n"))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	episodes, err := s.client.GetSeriesEpisodesContext(ctx, se.Series.ID)
+	episode, err := s.client.GetEpisodeByIDContext(ctx, se.Episodes[0].ID)
 	if err != nil {
 		return event.Event{}, err
-	}
-	var episode *sonarr.Episode
-	for _, ep := range episodes {
-		if ep.ID == se.Episodes[0].ID {
-			newEp := *ep
-			episode = &newEp
-			break
-		}
 	}
 	if episode != nil {
 		e.Metadata.Add("Overview", episode.Overview)

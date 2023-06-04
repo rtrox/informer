@@ -10,6 +10,7 @@ require (
 	github.com/gookit/validate v1.4.6
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/pflag v1.0.5
+	golang.org/x/text v0.9.0
 	golift.io/starr v0.14.1-0.20230602054021-f5530191f01e
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -26,5 +27,4 @@ require (
 	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
 )

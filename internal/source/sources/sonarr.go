@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/rtrox/informer/internal/event"
 	"github.com/rtrox/informer/internal/source"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"golift.io/starr"
 	"golift.io/starr/sonarr"
 	"gopkg.in/yaml.v3"
@@ -113,7 +115,7 @@ func (s *Sonarr) HandleSeriesEvent(se SonarrEvent) (event.Event, error) {
 	e.Metadata.Add("Overview", series.Overview)
 	e.Metadata.AddInline("Network", series.Network)
 	e.Metadata.AddInline("AirTime", series.AirTime)
-	e.Metadata.AddInline("Status", strings.Title(series.Status))
+	e.Metadata.AddInline("Status", cases.Title(language.English).String(series.Status))
 	e.Metadata.Add("Rated", series.Certification)
 	e.Metadata.Add("Genres", strings.Join(series.Genres, ", "))
 

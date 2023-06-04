@@ -167,25 +167,25 @@ func (s *Sonarr) HandleEpisodeEvent(se SonarrEvent) (event.Event, error) {
 			break
 		}
 	}
+	if episode != nil {
+		e.Metadata.Add("Overview", episode.Overview)
+		e.Metadata.AddInline("Network", episode.Series.Network)
+		e.Metadata.AddInline("Air Date", episode.AirDate)
+		e.Metadata.Add("Rated", episode.Series.Certification)
 
-	e.Metadata.Add("Overview", episode.Overview)
-	e.Metadata.AddInline("Network", episode.Series.Network)
-	e.Metadata.AddInline("Air Date", episode.AirDate)
-	e.Metadata.Add("Rated", episode.Series.Certification)
-
-	for _, image := range episode.Series.Images {
-		if image.CoverType == "poster" {
-			img := image.RemoteURL
-			e.ThumbnailURL = &img
+		for _, image := range episode.Series.Images {
+			if image.CoverType == "poster" {
+				img := image.RemoteURL
+				e.ThumbnailURL = &img
+			}
+		}
+		for _, image := range episode.Images {
+			if image.CoverType == "screenshot" {
+				img := image.RemoteURL
+				e.ImageURL = &img
+			}
 		}
 	}
-	for _, image := range episode.Images {
-		if image.CoverType == "screenshot" {
-			img := image.RemoteURL
-			e.ImageURL = &img
-		}
-	}
-
 	var episodeFile *SonarrEpisodeFile
 	if se.EpisodeFile != nil {
 		episodeFile = se.EpisodeFile

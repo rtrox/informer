@@ -23,7 +23,7 @@ COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
         CGO_ENABLED=1 go build \
-        -ldflags="-linkmode external -extldflags '-static' -s -w -X main.version=${VERSION}" \
+        -ldflags="-linkmode external -extldflags '-static' -s -w -X main.version=${VERSION} -X main.buildTime=${BUILDTIME} -X main.revision=${REVISION}" \
         -o /tmp/informer/out/informer \
          ./cmd/informer/main.go
 

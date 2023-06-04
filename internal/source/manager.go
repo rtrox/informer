@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog/log"
-	"github.com/rtrox/informer/internal/handler"
+	"github.com/rtrox/informer/internal/event"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -65,6 +65,6 @@ func (s *SourceManager) HandleHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Attach Event to request to be enqueued in middleware.
-	req := r.WithContext(handler.WithEventContext(r.Context(), e))
+	req := r.WithContext(event.WithEventContext(r.Context(), e))
 	*r = *req
 }

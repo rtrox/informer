@@ -15,7 +15,7 @@ import (
 	flag "github.com/spf13/pflag"
 
 	"github.com/rtrox/informer/internal/config"
-	"github.com/rtrox/informer/internal/handler"
+	"github.com/rtrox/informer/internal/middleware"
 	"github.com/rtrox/informer/internal/sink"
 	"github.com/rtrox/informer/internal/source"
 )
@@ -94,7 +94,8 @@ func main() {
 	router.Handle("/healthz", newHealthCheckHandler())
 
 	router.Route("/webhook", func(r chi.Router) {
-		r.Use(handler.PublishEventMiddleware(sinkManager))
+		// TODO: move middleware into SourceManager's Routes() func
+		r.Use(middleware.PublishEventMiddleware(sinkManager))
 		r.Mount("/", sourceManager.Routes())
 	})
 

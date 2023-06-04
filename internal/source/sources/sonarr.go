@@ -3,7 +3,6 @@ package sources
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -52,11 +51,6 @@ func NewSonarrWebhook(conf yaml.Node) source.Source {
 
 func (s *Sonarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.Event, error) {
 	var se SonarrEvent
-
-	bodyBytes, _ := io.ReadAll(r.Body)
-	r.Body.Close()
-	r.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
-	log.Info().Interface("body", string(bodyBytes)).Msg("Handling Sonarr event.")
 
 	if err := render.Bind(r, &se); err != nil {
 		return event.Event{}, err

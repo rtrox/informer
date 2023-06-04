@@ -3,7 +3,6 @@ package sources
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -24,7 +23,7 @@ const RadarrSourceIconURL = "https://raw.githubusercontent.com/Radarr/Radarr/dev
 
 func init() {
 	source.RegisterSource("radarr", source.SourceRegistryEntry{
-		Constructor: NewRadarrWebhook,
+		Constructor: NewRadarr,
 		Validator:   ValidateRadarrConfig,
 	})
 }
@@ -37,13 +36,23 @@ type Radarr struct {
 	client *radarr.Radarr
 }
 
+// TODO: Error propagation
+func NewRadarr(conf yaml.Node) source.Source {
+	c := RadarrConfig{}
+	if err := conf.Decode(&c); err != nil {
+		log.Error().Err(err).Msg("Failed to decode Radarr config.")
+		return &Radarr{}
+	}
+	log.Info().Interface("config", c).Msg("Loaded Radarr config.")
+	st := starr.New(c.ApiKey, c.URL, 0)
+	client := radarr.New(st)
+	return &Radarr{
+		client: client,
+	}
+}
+
 func (rd *Radarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.Event, error) {
 	var re RadarrEvent
-
-	bodyBytes, _ := io.ReadAll(r.Body)
-	r.Body.Close()
-	r.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
-	log.Info().Interface("body", string(bodyBytes)).Msg("Handling Radarr event.")
 
 	if err := render.Bind(r, &re); err != nil {
 		return event.Event{}, err
@@ -56,21 +65,6 @@ func (rd *Radarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.Even
 		return rd.HandleApplicationUpdate(re)
 	default:
 		return rd.HandleMovieEvent(re)
-	}
-}
-
-// TODO: Error propagation
-func NewRadarrWebhook(conf yaml.Node) source.Source {
-	c := RadarrConfig{}
-	if err := conf.Decode(&c); err != nil {
-		log.Error().Err(err).Msg("Failed to decode Radarr config.")
-		return &Radarr{}
-	}
-	log.Info().Interface("config", c).Msg("Loaded Radarr config.")
-	st := starr.New(c.ApiKey, c.URL, 0)
-	client := radarr.New(st)
-	return &Radarr{
-		client: client,
 	}
 }
 
@@ -216,9 +210,7 @@ func (e RadarrEventType) MarshalJSON() ([]byte, error) {
 }
 
 func (e *RadarrEventType) UnmarshalJSON(b []byte) error {
-	s := string(b)
-	s = s[1 : len(s)-1]
-	*e = RadarrEventType(s)
+	*e = RadarrEventType(b)
 	return nil
 }
 

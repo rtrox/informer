@@ -69,14 +69,19 @@ func (d *DiscordWebhook) Done() {
 
 func (d *DiscordWebhook) EventColor(e event.Event) int {
 	return map[event.EventType]int{
-		event.ObjectAdded:     3447003,  // Blue
-		event.ObjectUpdated:   10181046, // Purple
-		event.ObjectCompleted: 5763719,  // Green
-		event.ObjectFailed:    15158332, // Red
-		event.ObjectDeleted:   15158332, // Red
-		event.Informational:   16777215, // White
-		event.HealthIssue:     16711680, // Orange
-		event.TestEvent:       16777215, // White
+		event.ObjectAdded:       3447003,  // Blue
+		event.ObjectGrabbed:     10181046, // Purple
+		event.ObjectDownloaded:  5763719,  // Green
+		event.ObjectRenamed:     3447003,  // Blue
+		event.ObjectUpdated:     10181046, // Purple
+		event.ObjectCompleted:   5763719,  // Green
+		event.ObjectFailed:      15158332, // Red
+		event.ObjectDeleted:     15158332, // Red
+		event.ObjectFileDeleted: 15158332, // Red
+		event.Informational:     16777215, // White
+		event.HealthIssue:       16711680, // Orange
+		event.HealthRestored:    5763719,  // Green
+		event.TestEvent:         16777215, // White
 	}[e.EventType]
 }
 

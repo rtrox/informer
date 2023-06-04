@@ -272,12 +272,12 @@ func (se SonarrEventType) Description() string {
 
 func (se SonarrEventType) Event() event.EventType {
 	return map[SonarrEventType]event.EventType{
-		SonarrEventGrab:              event.ObjectUpdated,
-		SonarrEventDownload:          event.ObjectUpdated,
-		SonarrEventRename:            event.ObjectCompleted,
+		SonarrEventGrab:              event.ObjectGrabbed,
+		SonarrEventDownload:          event.ObjectDownloaded,
+		SonarrEventRename:            event.ObjectRenamed,
 		SonarrEventSeriesAdd:         event.ObjectAdded,
 		SonarrEventSeriesDelete:      event.ObjectDeleted,
-		SonarrEventEpisodeFileDelete: event.ObjectDeleted,
+		SonarrEventEpisodeFileDelete: event.ObjectFileDeleted,
 		SonarrEventTest:              event.Informational,
 		SonarrEventHealth:            event.HealthIssue,
 		SonarrEventHealthRestored:    event.HealthRestored,

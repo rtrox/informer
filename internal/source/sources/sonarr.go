@@ -22,6 +22,13 @@ import (
 const SonarrSource = "Sonarr"
 const SonarrIconURL = "https://raw.githubusercontent.com/Sonarr/Sonarr/develop/Logo/256.png"
 
+func init() {
+	source.RegisterSource("sonarr", source.SourceRegistryEntry{
+		Constructor: NewSonarrWebhook,
+		Validator:   ValidateSonarrConfig,
+	})
+}
+
 type SonarrConfig struct {
 	ApiKey string `yaml:"api-key"`
 	URL    string `yaml:"url"`

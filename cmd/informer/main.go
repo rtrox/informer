@@ -38,8 +38,12 @@ func newHealthCheckHandler() http.Handler {
 
 func main() {
 	configFile := flag.String("config", "config.yaml", "Path to config file")
+	debug := flag.Bool("debug", false, "Enable debug logging")
 	flag.Parse()
 
+	if *debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
 	conf, err := config.LoadConfig(*configFile)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load config")
@@ -94,8 +98,11 @@ func main() {
 	router.Handle("/healthz", newHealthCheckHandler())
 
 	router.Route("/webhook", func(r chi.Router) {
-		// TODO: move middleware into SourceManager's Routes() func
-		r.Use(middleware.PublishEventMiddleware(sinkManager))
+		r.Use(
+			// TODO: move event middleware into SourceManager's Routes() func
+			middleware.PublishEventMiddleware(sinkManager),
+			middleware.LogRequestBodyMiddleware,
+		)
 		r.Mount("/", sourceManager.Routes())
 	})
 

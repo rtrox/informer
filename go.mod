@@ -2,7 +2,7 @@ module github.com/rtrox/informer
 
 go 1.20
 
-replace golift.io/starr => /home/rtrox/starr
+replace golift.io/starr v0.14.1-0.20230602054021-f5530191f01e => github.com/rtrox/starr v0.0.0-20230604013323-67fcb74e010b
 
 require (
 	github.com/disgoorg/disgo v0.16.5

@@ -2,6 +2,8 @@ FROM golang:1.20-alpine AS build_base
 WORKDIR /tmp/informer
 
 ARG VERSION="devel"
+ARG BUILDTIME="unknown"
+ARG REVISION="unknown"
 
 RUN apk --update add \
     ca-certificates \

@@ -36,7 +36,6 @@ jobs:
           version: v1.51.2
           args: --timeout 5m --config .github/lint/golangci.yaml
 
-
   go-tests:
     runs-on: ubuntu-latest
     steps:

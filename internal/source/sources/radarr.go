@@ -43,7 +43,7 @@ func NewRadarr(conf yaml.Node) source.Source {
 		log.Error().Err(err).Msg("Failed to decode Radarr config.")
 		return &Radarr{}
 	}
-	log.Info().Interface("config", c).Msg("Loaded Radarr config.")
+
 	st := starr.New(c.ApiKey, c.URL, 0)
 	client := radarr.New(st)
 	return &Radarr{

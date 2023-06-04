@@ -21,8 +21,10 @@ import (
 )
 
 var (
-	appName = "informer"
-	version = "dev"
+	appName   = "informer"
+	version   = "dev"
+	buildTime = ""
+	revision  = ""
 )
 
 func init() {
@@ -79,6 +81,8 @@ func main() {
 	log.Info().
 		Str("app_name", appName).
 		Str("version", version).
+		Str("buildTime", buildTime).
+		Str("revision", revision).
 		Msg("Informer Started.")
 
 	sinkManager := sink.NewSinkManager(sink.SinkManagerOpts{

@@ -281,7 +281,9 @@ func (se SonarrEventType) Event() event.EventType {
 		SonarrEventSeriesAdd:         event.ObjectAdded,
 		SonarrEventSeriesDelete:      event.ObjectDeleted,
 		SonarrEventEpisodeFileDelete: event.ObjectDeleted,
+		SonarrEventTest:              event.Informational,
 		SonarrEventHealth:            event.HealthIssue,
+		SonarrEventHealthRestored:    event.HealthRestored,
 		SonarrEventUpgrade:           event.Informational,
 		SonarrEventUnknown:           event.Unknown,
 	}[se]

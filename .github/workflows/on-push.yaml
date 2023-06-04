@@ -12,6 +12,7 @@ jobs:
     uses: ./.github/workflows/tests.yaml
 
   build-and-push:
+    if: ! contains(github.event.issue.labels.*.name, 'ci-skip')
     needs: tests
     uses: ./.github/workflows/docker-image.yaml
     with:
@@ -20,6 +21,7 @@ jobs:
 
   deploy_develop:
     runs-on: ubuntu-latest
+    if: ! contains(github.event.issue.labels.*.name, 'ci-skip')
     needs: build-and-push
     steps:
       - name: Checkout Code
@@ -40,7 +42,7 @@ jobs:
             This PR was automatically created by GitHub Actions, and updates the image tag on the development deployment to ${{ needs.build-and-push.outputs.version }}.
           signoff: true
           delete-branch: true
-          labels: ci
+          labels: ci-skip
           reviewers: rtrox
           assignees: rtrox
 

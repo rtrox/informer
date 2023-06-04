@@ -1,25 +1,44 @@
 package sources
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
 	"github.com/rtrox/informer/internal/event"
 	"github.com/rtrox/informer/internal/source"
+	"golift.io/starr"
+	"golift.io/starr/sonarr"
 	"gopkg.in/yaml.v3"
 )
 
 const SonarrSource = "Sonarr"
 const SonarrIconURL = "https://raw.githubusercontent.com/Sonarr/Sonarr/develop/Logo/256.png"
 
-type Sonarr struct{}
+type SonarrConfig struct {
+	ApiKey string `yaml:"api-key"`
+	URL    string `yaml:"url"`
+}
 
-func NewSonarrWebhook() source.Source {
-	return &Sonarr{}
+type Sonarr struct {
+	client *sonarr.Sonarr
+}
+
+func NewSonarrWebhook(conf yaml.Node) source.Source {
+	c := SonarrConfig{}
+	if err := conf.Decode(&c); err != nil {
+		log.Error().Err(err).Msg("Failed to decode Sonarr config")
+	}
+	st := starr.New(c.ApiKey, c.URL, 0)
+	client := sonarr.New(st)
+	return &Sonarr{
+		client: client,
+	}
 }
 
 func (s *Sonarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.Event, error) {
@@ -39,8 +58,12 @@ func (s *Sonarr) HandleHTTP(w http.ResponseWriter, r *http.Request) (event.Event
 		return s.HandleHealthIssue(se)
 	case SonarrEventUpgrade:
 		return s.HandleApplicationUpdate(se)
-	default:
+	case SonarrEventSeriesAdd:
+		fallthrough
+	case SonarrEventSeriesDelete:
 		return s.HandleSeriesEvent(se)
+	default:
+		return s.HandleEpisodeEvent(se)
 	}
 }
 
@@ -76,25 +99,121 @@ func (s *Sonarr) HandleApplicationUpdate(se SonarrEvent) (event.Event, error) {
 
 func (s *Sonarr) HandleSeriesEvent(se SonarrEvent) (event.Event, error) {
 	e := commonSonarrFields(se)
-	// TODO
+	e.Title = fmt.Sprintf("%s: %s (%d)", se.EventType.Description(), se.Series.Title, se.Series.Year)
+	e.Description = se.Message
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	series, err := s.client.GetSeriesByIDContext(ctx, se.Series.ID)
+	if err != nil {
+		return event.Event{}, err
+	}
+
+	e.Metadata.Add("Overview", series.Overview)
+	e.Metadata.AddInline("Network", series.Network)
+	e.Metadata.AddInline("AirTime", series.AirTime)
+	e.Metadata.AddInline("Status", strings.Title(series.Status))
+	e.Metadata.Add("Rated", series.Certification)
+	e.Metadata.Add("Genres", strings.Join(series.Genres, ", "))
+
+	for _, image := range series.Images {
+		if image.CoverType == "poster" {
+			img := image.RemoteURL
+			e.ThumbnailURL = &img
+		}
+		if image.CoverType == "fanart" {
+			img := image.RemoteURL
+			e.ImageURL = &img
+		}
+	}
+	return e, nil
+}
+
+func (s *Sonarr) HandleEpisodeEvent(se SonarrEvent) (event.Event, error) {
+	e := commonSonarrFields(se)
+
+	e.Title = fmt.Sprintf("[%s] %s (%d) - S%dE%d - %s",
+		se.EventType.Description(),
+		se.Series.Title,
+		se.Series.Year,
+		se.Episodes[0].SeasonNumber,
+		se.Episodes[0].EpisodeNumber,
+		se.Episodes[0].Title,
+	)
+	e.Description = se.Message
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	episodes, err := s.client.GetSeriesEpisodesContext(ctx, se.Series.ID)
+	if err != nil {
+		return event.Event{}, err
+	}
+	var episode *sonarr.Episode
+	for _, ep := range episodes {
+		if ep.ID == se.Episodes[0].ID {
+			newEp := *ep
+			episode = &newEp
+			break
+		}
+	}
+
+	e.Metadata.Add("Overview", episode.Overview)
+	e.Metadata.AddInline("Network", episode.Series.Network)
+	e.Metadata.AddInline("Air Date", episode.AirDate)
+	e.Metadata.Add("Rated", episode.Series.Certification)
+
+	for _, image := range episode.Series.Images {
+		if image.CoverType == "poster" {
+			img := image.RemoteURL
+			e.ThumbnailURL = &img
+		}
+	}
+	for _, image := range episode.Images {
+		if image.CoverType == "screenshot" {
+			img := image.RemoteURL
+			e.ImageURL = &img
+		}
+	}
+
+	var episodeFile *SonarrEpisodeFile
+	if se.EpisodeFile != nil {
+		episodeFile = se.EpisodeFile
+	} else if len(se.RenamedEpisodeFiles) > 0 {
+		episodeFile = &se.RenamedEpisodeFiles[0]
+	} else if se.DeletedFiles != nil {
+		episodeFile = &se.DeletedFiles[0]
+	}
+
+	if se.EpisodeFile != nil {
+		e.Metadata.AddInline("Quality", episodeFile.Quality)
+		e.Metadata.AddInline("Codecs", fmt.Sprintf("%s / %s", episodeFile.MediaInfo.VideoCodec, episodeFile.MediaInfo.AudioCodec))
+		e.Metadata.Add("File Size", fmt.Sprintf("%d", episodeFile.Size))
+		e.Metadata.Add("Release Group", episodeFile.ReleaseGroup)
+		e.Metadata.Add("Language", strings.Join(episodeFile.MediaInfo.AudioLanguages, ", "))
+		e.Metadata.Add("Subtitles", strings.Join(episodeFile.MediaInfo.Subtitles, ", "))
+		e.Metadata.Add("Release Group", episodeFile.ReleaseGroup)
+		e.Metadata.Add("Release", episodeFile.SceneName)
+	}
 	return e, nil
 }
 
 type SonarrEvent struct {
-	EventType           SonarrEventType        `json:"eventType"`
-	InstanceName        string                 `json:"instanceName"`
-	ApplicationURL      string                 `json:"applicationUrl"`
-	Series              SonarrWebhookSeries    `json:"series"`
-	Episodes            []SonarrWebhookEpisode `json:"episodes"`
-	EpisodeFile         SonarrEpisodeFile      `json:"episodeFile"`
-	DownloadClient      string                 `json:"downloadClient"`
-	DownloadClientType  string                 `json:"downloadClientType"`
-	DownloadID          string                 `json:"downloadId"`
-	CustomFormatInfo    SonarrCustomFormatInfo `json:"customFormatInfo"`
-	IsUpgrade           bool                   `json:"isUpgrade"`
-	DeletedFiles        []SonarrEpisodeFile    `json:"deletedFiles"`
-	DeleteReason        string                 `json:"deleteReason"`
-	RenamedEpisodeFiles []SonarrEpisodeFile    `json:"renamedEpisodeFiles"`
+	EventType           SonarrEventType         `json:"eventType"`
+	InstanceName        string                  `json:"instanceName"`
+	ApplicationURL      string                  `json:"applicationUrl"`
+	Series              *SonarrWebhookSeries    `json:"series"`
+	Episodes            []SonarrWebhookEpisode  `json:"episodes"`
+	EpisodeFile         *SonarrEpisodeFile      `json:"episodeFile"`
+	DownloadClient      string                  `json:"downloadClient"`
+	DownloadClientType  string                  `json:"downloadClientType"`
+	DownloadID          string                  `json:"downloadId"`
+	CustomFormatInfo    *SonarrCustomFormatInfo `json:"customFormatInfo"`
+	IsUpgrade           bool                    `json:"isUpgrade"`
+	DeletedFiles        []SonarrEpisodeFile     `json:"deletedFiles"`
+	DeleteReason        string                  `json:"deleteReason"`
+	RenamedEpisodeFiles []SonarrEpisodeFile     `json:"renamedEpisodeFiles"`
 
 	Level   string `json:"level"`
 	Type    string `json:"type"`
@@ -120,12 +239,29 @@ const (
 	SonarrEventEpisodeFileDelete SonarrEventType = "EpisodeFileDelete"
 	SonarrEventTest              SonarrEventType = "Test"
 	SonarrEventHealth            SonarrEventType = "Health"
+	SonarrEventHealthRestored    SonarrEventType = "HealthRestored"
 	SonarrEventUpgrade           SonarrEventType = "Upgrade"
 	SonarrEventUnknown           SonarrEventType = "Unknown"
 )
 
 func (se SonarrEventType) String() string {
 	return string(se)
+}
+
+func (se SonarrEventType) Description() string {
+	return map[SonarrEventType]string{
+		SonarrEventGrab:              "Grabbed",
+		SonarrEventDownload:          "Downloaded",
+		SonarrEventRename:            "Renamed",
+		SonarrEventSeriesAdd:         "Series Added",
+		SonarrEventSeriesDelete:      "Series Deleted",
+		SonarrEventEpisodeFileDelete: "Episode File Deleted",
+		SonarrEventTest:              "Test",
+		SonarrEventHealth:            "Health Issue",
+		SonarrEventHealthRestored:    "Health Issue Restored",
+		SonarrEventUpgrade:           "Application Upgraded",
+		SonarrEventUnknown:           "Unknown",
+	}[se]
 }
 
 func (se SonarrEventType) Event() event.EventType {
@@ -143,7 +279,7 @@ func (se SonarrEventType) Event() event.EventType {
 }
 
 type SonarrWebhookSeries struct {
-	ID         int    `json:"id"`
+	ID         int64  `json:"id"`
 	Title      string `json:"title"`
 	TitleSlug  string `json:"titleSlug"`
 	Path       string `json:"path"`

@@ -8,7 +8,7 @@ resources:
   - ingress.yaml
 images:
   - name: ghcr.io/rtrox/informer-devel
-    newTag: sha-2ce0374-20230604164025
+    newTag: sha-9703261-20230607180941
 commonLabels:
   app.kubernetes.io/part-of: informer-devel
   k8s-app: informer-devel

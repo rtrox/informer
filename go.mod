@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/disgoorg/disgo v0.16.5
 	github.com/disgoorg/snowflake/v2 v2.0.1
-	github.com/go-chi/chi/v5 v5.0.8
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/render v1.0.2
 	github.com/gookit/validate v1.4.6
 	github.com/rs/zerolog v1.29.1
